@@ -1,0 +1,290 @@
+fullnameOverride: "jenkins"
+
+serviceAccount:
+  create: true
+  name: jenkins-master
+  annotations:
+    eks.amazonaws.com/role-arn: ${iam_role_arn}
+
+serviceAccountAgent:
+  create: true
+  name: jenkins-agent
+  annotations:
+    eks.amazonaws.com/role-arn: ${iam_role_arn}
+
+persistence:
+  enabled: false
+
+backup:
+  enabled: true
+  schedule: "0 7-19/4 * * 1-5" # Every 4th hour from 7 through 19 on every day-of-week from Monday through Friday
+  annotations:
+    eks.amazonaws.com/role-arn: ${iam_role_arn}
+  destination: s3://${s3_backup_name}
+  env:
+    - name: "AWS_REGION"
+      value: ${aws_region}
+
+agent:
+  enabled: true
+  containerCap: 20
+  podName: default
+  customJenkinsLabels: default
+  command: "jenkins-agent"
+  args: "$${computer.jnlpmac} $${computer.name}"
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "250Mi"
+    limits:
+      cpu: "1"
+      memory: "2048Mi"
+  alwaysPullImage: true
+  yamlTemplate: |-
+    apiVersion: v1
+    kind: Pod
+    metadata:
+      annotations:
+        eks.amazonaws.com/role-arn: "${iam_role_arn}"
+    spec:
+      serviceAccount: "jenkins-agent"
+      securityContext:
+        fsGroup: 65534
+  yamlMergeStrategy: "merge"
+
+additionalAgents:
+  backend:
+    podName: backend
+    customJenkinsLabels: backend
+    image: ${ecr_backend_url}
+    tag: latest
+    command: "jenkins-agent"
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "250Mi"
+      limits:
+        cpu: "1.5"
+        memory: "4048Mi"
+    yamlTemplate: |-
+      spec:
+        tolerations:
+          - key: "dedicated"
+            operator: "Equal"
+            value: "jenkins"
+            effect: "NoSchedule"
+        securityContext:
+          fsGroup: 65534
+        containers:
+          - name: jnlp
+            volumeMounts:
+              - name: docker-certs
+                mountPath: /certs
+              - name: workspace
+                mountPath: /home/jenkins
+            env:
+              - name: AWS_REGION
+                value: ${aws_region}
+              - name: DOCKER_TLS_CERTDIR
+                value: /certs
+              - name: DOCKER_HOST
+                value: tcp://localhost:2376
+              - name: DOCKER_TLS_VERIFY
+                value: "1"
+              - name: DOCKER_CERT_PATH
+                value: /certs/client
+          - name: docker
+            env:
+              - name: DOCKER_TLS_CERTDIR
+                value: /certs
+            command:
+              - dockerd-entrypoint.sh
+            image: docker:stable-dind
+            resources:
+              requests:
+                cpu: 100m
+                memory: 500Mi
+            securityContext:
+              privileged: true
+            volumeMounts:
+              - name: docker-storage
+                mountPath: /var/lib/docker
+              - name: docker-certs
+                mountPath: /certs
+              - name: workspace
+                mountPath: /home/jenkins
+        volumes:
+          - name: workspace
+            emptyDir: {}
+          - name: docker-storage
+            emptyDir: {}
+          - name: docker-certs
+            emptyDir: {}
+          - name: token-vol
+            projected:
+              sources:
+                - serviceAccountToken:
+                    path: token
+master:
+  adminUser: "${admin_username}"
+  adminPassword: "${admin_password}"
+  tag: "${image_tag}"
+  serviceType: NodePort
+  tolerations:
+    - key: "dedicated"
+      operator: "Equal"
+      value: "jenkins"
+      effect: "NoSchedule"
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/security-groups: ${alb_ingress_sg}
+      alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+      alb.ingress.kubernetes.io/certificate-arn: ${acm_arn}
+      alb.ingress.kubernetes.io/healthcheck-path: /login
+      alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80,"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: instance
+      alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=${s3_logging_bucket},access_logs.s3.prefix=alb/jenkins
+      external-dns.alpha.kubernetes.io/hostname: ${hostname}.
+    hostName: ${hostname}
+    paths:
+      - path: /*
+        backend:
+          serviceName: ssl-redirect
+          servicePort: use-annotation
+      - path: /*
+        backend:
+          serviceName: jenkins
+          servicePort: 8080
+  healthProbesLivenessTimeout: 10
+  healthProbesReadinessTimeout: 10
+  healthProbeLivenessPeriodSeconds: 20
+  healthProbeReadinessPeriodSeconds: 20
+  healthProbeLivenessFailureThreshold: 10
+  healthProbeReadinessFailureThreshold: 6
+  healthProbeLivenessInitialDelay: 180
+  healthProbeReadinessInitialDelay: 120
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "256Mi"
+    limits:
+      cpu: "2"
+      memory: "4096Mi"
+  containerEnv:
+    - name: AWS_REGION
+      value: ${aws_region}
+  sidecars:
+    configAutoReload:
+      enabled: false
+  overwriteJobs: true
+  overwritePlugins: true
+  jenkinsUrl: "https://${hostname}"
+  installPlugins:
+    - kubernetes
+    - workflow-job
+    - workflow-aggregator
+    - credentials-binding
+    - git
+    - configuration-as-code
+    - command-launcher
+    - matrix-auth
+    - jdk-tool
+    - authorize-project
+    - ansicolor
+    - artifactory
+    - sonar
+    - junit
+    - code-coverage-api
+    - htmlpublisher
+    - job-dsl
+    - cloudbees-folder
+    - github
+    - postbuild-task
+    - github-branch-source
+    - ssh-credentials
+    - antisamy-markup-formatter
+    - pam-auth
+    - external-monitor-job
+    - windows-slaves
+    - plugin-util-api
+    - workflow-basic-steps
+    - cucumber-reports
+    - build-name-setter
+    - multibranch-build-strategy-extension
+  disableRememberMe: false
+  JCasC:
+    enabled: true
+    defaultConfig: true
+    configScripts:
+      welcome-message: |
+        jenkins:
+            systemMessage: |
+              Welcome to Jenkins, I am 100% configured and managed 'as code'. Configuration will be handled by the 'Jenkins Configuration as Code' or JCasC plugin.
+              Check the project terraform repository if you need to change anything. Manual changes will be lost upon a restart.
+      ansicolor-settings: |
+        unclassified:
+          ansiColorBuildWrapper:
+            globalColorMapName: "kubernetes"
+      credentials: |
+        credentials:
+          system:
+            domainCredentials:
+            - credentials:
+              - string:
+                  description: "Github Token"
+                  id: "github-token"
+                  scope: GLOBAL
+                  secret: "AMSECRET"
+      global-vars: |
+        jenkins:
+          globalNodeProperties:
+          - envVars:
+              env:
+              - key: AWS_REGION
+                value: "${aws_region}"
+              - key: AWS_ACCOUNT_ID
+                value: "${aws_account_id}"
+              - key: ENVIRONMENT_NAME
+                value: "${environment_name}"
+              - key: ALB_INGRESS_SG_ID
+                value: "${alb_ingress_sg}"
+              - key: ACM_ARN
+                value: "${acm_arn}"
+              - key: DOMAIN_NAME
+                value: "${domain_name}"
+      tools: |
+        tool:
+          git:
+            installations:
+            - home: "git"
+              name: "Default"
+
+      jobs: |
+        jobs:
+          - script: |
+              folder('backend');
+
+              listView('backend') {
+                  description('Backend jobs')
+                  recurse()
+                  filterBuildQueue()
+                  filterExecutors()
+                  jobs {
+                      names('backend/tomcat-app')
+                  }
+                  columns {
+                      status()
+                      weather()
+                      name()
+                      lastSuccess()
+                      lastFailure()
+                      lastDuration()
+                      buildButton()
+                  }
+              }
+
+          - script: |
+              ${job_tomcat_app}

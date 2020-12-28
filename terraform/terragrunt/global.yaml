@@ -1,0 +1,4 @@
+# Product information (Mostly used by resources tags)
+product_name: "my-product"
+contact: "hamade@live.com"
+orchestration: "https://github.com/ahmad-hamade/terragrunt-eks-jenkins"

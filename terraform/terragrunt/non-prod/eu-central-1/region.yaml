@@ -1,0 +1,3 @@
+aws_region_id: "eu-central-1"
+aws_region_name: "frankfurt"
+aws_zones: ["a", "b", "c"]

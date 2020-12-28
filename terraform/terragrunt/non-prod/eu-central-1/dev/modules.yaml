@@ -1,0 +1,8 @@
+acm_public: "git@github.com:terraform-aws-modules/terraform-aws-acm.git//.?ref=v2.12.0"
+ecr: "git@github.com:lgallard/terraform-aws-ecr.git//.?ref=0.3.0"
+eks: "git@github.com:terraform-aws-modules/terraform-aws-eks.git//.?ref=v13.2.1"
+eks_config: "git@github.com:ahmad-hamade/terraform-eks-config.git//.?ref=v3.1.0"
+eks_iam_role: "git@github.com:ahmad-hamade/terraform-eks-config.git//modules/eks-iam-role-with-oidc?ref=v3.1.0"
+route53_zone: "git@github.com:terraform-aws-modules/terraform-aws-route53.git//modules/zones?ref=v1.5.0"
+s3_bucket: "git@github.com:terraform-aws-modules/terraform-aws-s3-bucket.git//.?ref=v1.17.0"
+vpc: "git@github.com:terraform-aws-modules/terraform-aws-vpc.git//.?ref=v2.64.0"

@@ -1,0 +1,34 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:List*",
+        "s3:Get*",
+        "s3:Put*"
+      ],
+      "Resource": [
+        "${s3_backup_arn}",
+        "${s3_backup_arn}/*"
+      ]
+    },
+    {
+      "Sid": "GetAuthorizationToken",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "ecr:*"
+      ],
+      "Resource": [
+        "arn:aws:ecr:${region}:${account_id}:repository/${ecr_path}/*"
+      ]
+    }
+  ]
+}
