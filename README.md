@@ -16,6 +16,7 @@ A sample project for setting up an EKS cluster that runs Jenkins configured as a
     - [Route53 setup](#route53-setup)
     - [Deploy the rest](#deploy-the-rest)
     - [Build Jenkins agent image](#build-jenkins-agent-image)
+    - [Accessing Jenkins](#accessing-jenkins)
   - [Code checks](#code-checks)
 
 ## What does it create
@@ -32,7 +33,7 @@ This project will create the following AWS services:
 
 ### Applications infrastructure
 
-- Jenkins
+- Jenkins (with public ALB as jenkins.YOUR_DOMAIN.com)
 - K8s namespace
 - K8s RBAC for the created namespace
 - ECR for a sample tomcat-app
@@ -116,6 +117,20 @@ Jenkins setup has pre-defined kubernates agent that is used to run pipelines. Yo
 cd ./docker-images/jenkins
 
 make dev aws=<AWS_ACCOUNT_ID> region=<AWS_REGION_ID>
+```
+
+### Accessing Jenkins
+
+Jenkins is deployed with terraform using helm chart and its exposed to internet.
+
+The default Jenkins master username is `admin` and the password is randomly generated using terraform.
+
+Run the below command to retrive the Jenkins password:
+
+```bash
+cd ./terraform/terragrunt/non-prod/`<REGION>`/dev/apps-infra/jenkins/password
+
+terragrunt output
 ```
 
 ## Code checks
