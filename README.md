@@ -69,7 +69,7 @@ Rename the folder `eu-central-1` under `./terraform/terragrunt/non-prod/` to mat
 - ./terraform/terragrunt/non-prod/`<REGION>`/region.yaml
 - ./terraform/terragrunt/non-prod/`<REGION>`/dev/env.yaml
 
-There are few standard tags that are added by default to all AWS resources and you can add/remove keys from the root [terragrunt.hcl](./terraform/terragrunt/terragrunt.hcl) under `locals` declaration with name `standard_tags`.
+There are few standard tags that are added by default to all AWS resources and you can add/remove keys from the root [terragrunt.hcl]([./terraform/terragrunt/terragrunt.hcl](https://github.com/ahmad-hamade/terragrunt-eks-jenkins/blob/main/terraform/terragrunt/terragrunt.hcl#L21)) under `locals` declaration with name `standard_tags`.
 
 ## Deployment
 
