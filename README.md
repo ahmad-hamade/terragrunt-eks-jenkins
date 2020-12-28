@@ -104,7 +104,8 @@ You can apply all components by running the following command:
 ```bash
 cd ./terraform
 
-terragrunt apply-all --terragrunt-working-dir terragrunt/non-prod --terragrunt-non-interactive --terragrunt-parallelism 1
+terragrunt apply-all --terragrunt-working-dir terragrunt/non-prod \
+--terragrunt-non-interactive --terragrunt-parallelism 1
 ```
 
 ### Build Jenkins agent image
